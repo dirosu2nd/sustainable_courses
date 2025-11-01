@@ -1,6 +1,10 @@
 Installation steps
 
 0. install python and pip
+
+
+    follow instructions on link below for python instalation on a windows: https://learn.microsoft.com/en-us/windows/python/beginners#manually-set-up-your-python-development-environment
+
     sudo add-apt-repository ppa:deadsnakes/ppa
     sudo apt install pythpn3.13
     python3.13 -m ensurepip
@@ -8,14 +12,26 @@ Installation steps
     python -m pip install --upgrade pip
     pip install pip-tools
 
-1. Create virtual environment
-    cd <project folder>
+1. Create virtual environment on your device
+    mine for example is within: C:\Users\diana rosu\
+    
+    mkdir <folder name>
+    cd <folder name>
     python -m venv env
 
+3. clone git repository within new folder by executing
+
+
+    git clone https://github.com/dirosu2nd/sustainable_courses.git
+
 2. Activate virtual environment
+
+
     source env/bin/activate
 
 4. install requirements
+
+
     pip install -r requirements.txt
 
 5. download the course catalog of interest
@@ -24,8 +40,12 @@ Installation steps
 6. update file with keywords of interest (keywords.txt)
     one keyword per line
 
-8. execute extraction
+8. execute extraction to read pdf
+
+
     python src/read_pdf.py --inpdf  data/2025-2026.pdf --outcsv cr.csv 
 
-9. execute annotation with keyword matches
+9. execute annotation with keyword matches to label courses
+
+
        python src/label_courses.py --incsv cr.csv --outcsv cr_summary.csv --inkeyword data/keywords.txt
