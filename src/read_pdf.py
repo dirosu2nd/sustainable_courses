@@ -6,72 +6,13 @@ from loguru import logger
 import pandas as pd
 import sys
 
+# logger level default is DEBUG. to set logger level to INFO uncomment these lines (from search'loguru configure log level')
+#logger.remove()
+#logger.add(sys.stderr, level='INFO')
+
 COURSE_END_MARKER=re.compile(r'(Prerequisite:|Approved for|Restricted|Same as|This course satisfies|graduate hours.)')
 PATTERN_COURSE_MARKER_CROSS_LINES=re.compile(r'\(https://(\s){0,1}courses.(\s){0,1}illinois.(\s){0,1}edu/(\s){0,1}schedule/(\s){0,1}terms/')
 PATTERN_BEGGINING=re.compile(r'\(https://')
-TERM_LIST=['sustain',
-'environ',
-'ecolog',
-'conserv',
-'restor',
-'climate',
-'resilien',
-'green',
-'waterv'
-'land',
-'energy',
-'solar',
-'wind',
-'geothermal',
-'natur',
-'pollut',
-'waste',
-'transport',
-'wild',
-'food',
-'povert',
-'agri',
-'inclusiv',
-'equit',
-'equal',
-'sanita',
-'renew',
-'hydro',
-'recyc',
-'greenhouse gas',
-'global warming',
-'ocean',
-'fish',
-'forest',
-'justice',
-'governance',
-'peace',
-'rights',
-'stewardship',
-'soil',
-'river',
-'reus',
-'preserv',
-'ozone',
-'marine',
-'lake',
-'invasive',
-'indigenous',
-'intersectional',
-'eutrophication',
-'ecosystem',
-'desertification',
-'brownfield',
-'aquifer',
-'aquaculture',
-'Anthropocene',
-'permaculture',
-'habitat',
-'acidification',
-'endangered',
-'emissions',
-'biodiversity',
-]
 
 
 def find_end_description(text:str, starting:int, current_dept:str)->int | None:

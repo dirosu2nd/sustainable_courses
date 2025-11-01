@@ -15,25 +15,17 @@ Installation steps
 2. Activate virtual environment
     source env/bin/activate
 
-3. update/create requirements.txt
-    pip-compile --output-file=requirements.txt requirements.in
-
 4. install requirements
     pip install -r requirements.txt
 
 5. download the course catalog of interest
+    2025-2026.pdf is already in sustainable_courses\data
 
-6. update file with keywords of interest
+6. update file with keywords of interest (keywords.txt)
     one keyword per line
 
-7. check command line parameters
-    python src/read_pdf.py --help
-    
 8. execute extraction
-    
     python src/read_pdf.py --inpdf  data/2025-2026.pdf --outcsv cr.csv 
 
-    diana's version: ' python src/read_pdf.py --inpdf data/2025-2026.pdf --outcsv cr.csv '
-
 9. execute annotation with keyword matches
-    $env:LOGURU_LEVEL= "DEBUG"  python src/label_courses.py --incsv cr.csv --outcsv cr_summary.csv --inkeyword data/keywords.txt
+       python src/label_courses.py --incsv cr.csv --outcsv cr_summary.csv --inkeyword data/keywords.txt
