@@ -1,4 +1,11 @@
-# importing required modules
+""" Extract from pdf course catalog all the course descriptions.
+Limitation: page footer and headers are not removed. They might appear in course descriptions.
+e.g., 
+- 'Information listed in this catalog as of ..' 
+- page number Dept code - department name
+- 'University of Illionois... page number'
+"""
+
 import argparse
 import re
 from pypdf import PdfReader
@@ -7,34 +14,98 @@ import pandas as pd
 import sys
 
 # logger level default is DEBUG. to set logger level to INFO uncomment these lines (from search'loguru configure log level')
-#logger.remove()
-#logger.add(sys.stderr, level='INFO')
+logger.remove()
+logger.add(sys.stderr, level='WARNING')
 
-COURSE_END_MARKER=re.compile(r'(Prerequisite:|Approved for|Restricted|Same as|This course satisfies|graduate hours.)')
+# END_MARKERS are observed patterns at end of course descriptions, 
+# but the list does cover all courses.
+# use pattern \s{1,2} to match on space or \cr\lf sequence at end of linestands in pattern for MAY_BE_REPEATED_WITH_SPECIAL_CHARS =  # space or end of line |May\s\sbe repeated|May be\s\srepeated"
+END_MARKERS=[
+    r"Prerequisite:",
+    r"Approved\s{1,2}for\s",
+    r"Restricted\s",
+    r"Same\s{1,2}as\s",
+    r"This\s{1,2}course\s{1,2}satis",
+    r"The\s{1,2}topics\s{1,2}on\s{1,2}offer",
+    r"Topics\s{1,2}will\s{1,2}be\s{1,2}listed",
+    r"Credit\s{1,2}is\s{1,2}not\s{1,2}given\s",
+    r"Eligible\s{1,2}for\s",
+    r"See\s{1,2}Class\s{1,2}Schedule(.|\s)",
+    r"\d+\s{1,2}undergraduate\s{1,2}(hour|credit)",
+    r"\d+\s{1,2}graduate\s{1,2}(hour|credit)",
+    r"\d+\s{1,2}professional\s{1,2}(hour|credit)",
+    r"No\s{1,2}graduate\s{1,2}credit",
+    r"No\s{1,2}undergraduate\s{1,2}credit",
+    r"May\s{1,2}be\s{1,2}repeated",
+ ]
+
+SEPARATOR=r"(\s|"+chr(160)+")" # 160 corresponds to x'a0 char observed in text
+COURSE_END_MARKER=re.compile(r'('+'|'.join(END_MARKERS)+')')
+
+#Class Schedule (https://courses.illinois.edu/schedule/DEFAULT/DEFAULT
+BEGINNING_OF_DEPT=rf"Class{SEPARATOR}+Schedule{SEPARATOR}+\(https://{SEPARATOR}*courses.{SEPARATOR}*illinois.{SEPARATOR}*edu/{SEPARATOR}*schedule/{SEPARATOR}*DEFAULT/{SEPARATOR}*DEFAULT/"
+BEGINNING_OF_DEPT_COMPILED=re.compile(BEGINNING_OF_DEPT)
+
 PATTERN_COURSE_MARKER_CROSS_LINES=re.compile(r'\(https://(\s){0,1}courses.(\s){0,1}illinois.(\s){0,1}edu/(\s){0,1}schedule/(\s){0,1}terms/')
-PATTERN_BEGGINING=re.compile(r'\(https://')
-
 
 def find_end_description(text:str, starting:int, current_dept:str)->int | None:
-    index = -1
-    next_match = COURSE_END_MARKER.search(text, starting)
-    if next_match is not None:
-        index = next_match.start()
-    pattern = rf"{current_dept}(" +chr(160)+"| )" #\xa0COURSE_EN
-    print(pattern)
-    cpattern = re.compile(pattern)
-    next_match = cpattern.search(text, starting)
-    if next_match:
-        return index if index >= 0 and index < next_match.start() else next_match.start()    
-    else:
-        return index if index >=0 else None
-        
+    """ 1. find a course end marker, if any
+        2. find the next course in department marker, if any
+        3. find a department start marker 
+    """
+    end_index = -1
+    end_match = COURSE_END_MARKER.search(text, starting)
+    if end_match is not None:
+        end_index = end_match.start()
+
+    # 2. check start of next course
+    department_course_match_index = _find_department_course(text, starting, current_dept)
+    if department_course_match_index is not None:
+        # department course in string was matched
+        if (end_index >= 0 and end_index < department_course_match_index):
+            logger.info(f"UNSPLIT COURSES {text[starting:end_index]}")
+            return end_index
+        else:
+            return department_course_match_index    
     
+    # 3. check if start of department just in case the end markers did not match the end of course description, check if there is any '<dept> <number>' pattern to use as end marker
+    start_department_index = _find_next_department_start(text, starting)
+    if start_department_index is not None:
+        if end_index < 0 or end_index > start_department_index:
+            # TODO drop from the end the department header: <DEPT> - ...
+            # e,g. see course AGED 511: AHS - ... Courses AHS 
+            end_index = start_department_index
+            logger.info(f"BEGINNING_OF_DEPT match  left {text[starting:end_index]}")
+        else:
+            logger.debug(f"BEGINNING_OF_DEPT match too far {current_dept}")
+    else:
+        logger.debug(f"BEGINNING_OF_DEPT not match {current_dept}")
+
+    return end_index if end_index >=0 else None
+
+def _find_next_department_start(text:str, starting_index:int)->int | None:
+    start_department_match = BEGINNING_OF_DEPT_COMPILED.search(text, starting_index)
+    if start_department_match is None:
+        return None
+    start_department_index = start_department_match.start()
+    return start_department_index
+    
+def _find_department_course(text:str, starting_index:int, current_department:str)->int | None:
+    # pattern <current_dept>(<space> or \xa0) several <digit> and space
+    pattern = rf"{current_department}{SEPARATOR}\d+\s"
+    compiled_pattern = re.compile(pattern)
+    next_match = compiled_pattern.search(text, starting_index)
+    if next_match:
+        return next_match.start()
+    else:
+        return None
+
 def read_arguments()->argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('--inpdf',help='path to course catalog pdf', type=str,required=True)
     parser.add_argument('--outcsv',help='csv file for output', type=str,required=True)
     parser.add_argument('--startpage',help='page to start parsing', type=int, default=0)
+    parser.add_argument('--endpage',help='page to end parsing', type=int, default=0)
     
     return parser.parse_args()
 
@@ -43,8 +114,10 @@ def handle_description_continuation(text:str, data:dict[str,list])->bool:
     if end_description is None: # current description not ended at end page
         data["description"][-1] += text # append the entire page
         return True # more continuation needed
+
     data["description"][-1] += text[0:end_description]
     data['description'][-1] = data['description'][-1].replace('\n',' ')
+    data['description'][-1] = data['description'][-1].strip()
     return False
 
 def process_page(text:str, prev_page_text:str, data:dict[str,list], pending_description:bool)->bool:
@@ -118,7 +191,7 @@ def collect_description(text, data, end_row)->bool:
     if end_description is None:
         data['description'].append(text[end_row+1:])
         return True
-    else:
+    else:  
         data['description'].append(text[end_row+1:end_description])
         data['description'][-1] = data['description'][-1].replace('\n',' ')
         return False
@@ -152,18 +225,20 @@ if "__main__" == __name__:
     text = None
 
     for page_nr, page in enumerate(reader.pages[args.startpage:],start=args.startpage): #2238 #2131
+        if args.endpage and page_nr > args.endpage:
+            break
         start_courses = len(data['course'])
         prev_page_text = text # save prev page text
         text = page.extract_text()
         page_len = len(text)
-        logger.info(f"{page_nr=} {page_len=}")
+        logger.warning(f"{page_nr=} {page_len=}")
 
         pending_description = process_page(text, prev_page_text, data, pending_description)
 
         if len(data['course']) >start_courses:
             if first_page < 0:
                 first_page = page_nr
-                logger.info(f"{first_page=}")
+                logger.warning(f"{first_page=}")
 
     df = pd.DataFrame(data)
     df["len_description"] = df["description"].str.len()
