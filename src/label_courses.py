@@ -113,5 +113,6 @@ if "__main__" == __name__:
         logger.info(f'{row} {summaries[-1]}')
     df['summary'] = summaries
     df = df.drop("all_doc", axis=1)
+    df = df[df['summary'] != ""]
     df.to_csv(args.outcsv, sep=',', encoding='utf-8', index=False)
 

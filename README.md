@@ -14,10 +14,20 @@ Installation steps
 
 FOR LINUX:
     sudo add-apt-repository ppa:deadsnakes/ppa
+
+
     sudo apt install python3.13
+    
+    
     python3.13 -m ensurepip
+    
+    
     sudo apt-get install python3.13-venv
+    
+    
     python -m pip install --upgrade pip
+    
+    
     pip install pip-tools
 
 
