@@ -54,7 +54,7 @@ FOR LINUX:
 
     python -m venv env
 
-3. clone git repository within new folder by executing
+3. clone git repository within new folder by executing:
 
     git clone https://github.com/dirosu2nd/sustainable_courses.git
 
@@ -68,14 +68,16 @@ FOR LINUX:
     source env/bin/activate
 
     for windows:
-    .\env\Scripts\Activate.ps1
+    .\env\Scripts\Activate.bat
 
 
         IF DOESNT WORK, run the following commands & retry:
-            Set-ExecutionPolicy -Scop CurrentUser
+            Set-ExecutionPolicy -Scope CurrentUser
                 RemoteSigned
             
-4. install requirements
+4. install requirements: 
+
+
     pip install -r requirements.txt
 
 5. download the course catalog of interest
